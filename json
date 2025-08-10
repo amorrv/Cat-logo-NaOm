@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Catálogo NaOm</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #catalogo { display: flex; flex-wrap: wrap; gap: 10px; }
+    a { text-decoration:none; color:#000; width:150px; border:1px solid #ccc; border-radius:8px; padding:8px; text-align:center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); display:block; }
+    img { width: 100%; height:auto; border-radius:4px; }
+    p { margin-top:6px; font-weight:bold; }
+  </style>
+</head>
+<body>
+  <input type="text" id="buscador" placeholder="Buscar por marca o modelo..." style="padding:8px; width: 100%; max-width:400px; margin-bottom:10px; font-size:16px;" />
+  <div id="catalogo"></div>
+  <div id="error" style="color:red; font-weight:bold; margin-top:10px;"></div>
+
+  <script>
+    const urlJSON = 'catalogo_productos.json';
+
+    async function cargarCatalogo() {
+      const errorDiv = document.getElementById('error');
+      errorDiv.textContent = '';
+
+      try {
+        const res = await fetch(urlJSON);
+        if (!res.ok) throw new Error('Error HTTP ' + res.status);
+
+        const productos = await res.json();
+
+        const catalogoDiv = document.getElementById('catalogo');
+        catalogoDiv.innerHTML = '';
+
+        productos.forEach(p => {
+          const a = document.createElement('a');
+          a.href = p.enlace;
+          a.target = '_blank';
+
+          const img = document.createElement('img');
+          img.src = p.imagen;
+          img.alt = p.modelo;
+          a.appendChild(img);
+
+          const pNombre = document.createElement('p');
+          pNombre.textContent = p.modelo;
+          a.appendChild(pNombre);
+
+          catalogoDiv.appendChild(a);
+        });
+
+      } catch (error) {
+        errorDiv.textContent = '¡Ups! No se pudo cargar el catálogo: ' + error.message;
+      }
+    }
+
+    document.getElementById('buscador').addEventListener('input', function() {
+      const filtro = this.value.toLowerCase();
+      const catalogoDiv = document.getElementById('catalogo');
+      Array.from(catalogoDiv.children).forEach(a => {
+        const texto = a.textContent.toLowerCase();
+        a.style.display = texto.includes(filtro) ? 'block' : 'none';
+      });
+    });
+
+    cargarCatalogo();
+  </script>
+</body>
+</html>
