@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo Digital Pro</title>
+    <meta name="theme-color" content="#4e73df">
+    <meta name="description" content="Catálogo digital con capacidad de edición y organización automática">
+    <link rel="manifest" id="appManifest">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📱</text></svg>">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #f8f9fc;
+            --accent-color: #36b9cc;
+        }
+        
+        body {
+            background-color: #f8f9fc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-top: 56px;
+        }
+        
+        .navbar {
+            background: linear-gradient(90deg, var(--primary-color) 0%, #224abe 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .catalog-item {
+            transition: transform 0.3s;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        
+        .catalog-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .category-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            background-color: var(--secondary-color);
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: var(--primary-color);
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box input {
+            border-radius: 20px;
+            padding-left: 45px;
+        }
+        
+        .search-box i {
+            position: absolute;
+            left: 20px;
+            top: 12px;
+            color: #b7b9cc;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #224abe;
+            border-color: #224abe;
+        }
+        
+        .ai-generator {
+            background-color: #f0f8ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .install-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .offline-alert {
+            position: fixed;
+            top: 70px;
+            left: 0;
+            right: 0;
+            z-index: 1050;
+            border-radius: 0;
+            display: none;
+        }
+        
+        .download-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
+            border-radius: 10px;
+            padding: 25px;
+            color: white;
+            margin-bottom: 25px;
+        }
+        
+        @media (max-width: 768px) {
+            .product-image {
+                height: 200px;
+                object-fit: cover;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-catalog me-2"></i>Catálogo Digital
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="fas fa-home me-1"></i> Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-folder me-1"></i> Categorías</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                            <i class="fas fa-plus-circle me-1"></i> Agregar
+                        </a>
+                    </li>
+                </ul>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="form-control" placeholder="Buscar productos..." id="searchInput">
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Offline Alert -->
+    <div class="alert alert-warning offline-alert" id="offlineAlert">
+        <i class="fas fa-wifi-slash me-2"></i>Estás trabajando sin conexión. Los cambios se sincronizarán cuando recuperes la conexión.
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <!-- Download Section -->
+        <div class="download-section">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h3><i class="fas fa-mobile-alt me-2"></i> Instala nuestra App</h3>
+                    <p>Guarda este catálogo en tu dispositivo móvil para acceder rápidamente, incluso sin conexión a internet.</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-light" id="downloadBtn">
+                            <i class="fas fa-download me-2"></i>Guardar como App
+                        </button>
+                        <button class="btn btn-outline-light" id="shareBtn">
+                            <i class="fas fa-share-alt me-2"></i>Compartir
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23FFF' rx='15'/%3E%3Ctext x='50' y='50' font-size='50' text-anchor='middle' dominant-baseline='middle' fill='%234e73df'%3E%F0%9F%93%81%3C/text%3E%3C/svg%3E" 
+                         alt="Logo Catálogo" width="100" class="img-fluid">
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h2>Mi Catálogo Digital</h2>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="categoryFilter">
+                    <option value="">Todas las categorías</option>
+                    <option value="electronics">Electrónicos</option>
+                    <option value="clothing">Ropa</option>
+                    <option value="books">Libros</option>
+                    <option value="home">Hogar</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="sortSelect">
+                    <option value="name">Ordenar por nombre (A-Z)</option>
+                    <option value="name-desc">Ordenar por nombre (Z-A)</option>
+                    <option value="category">Ordenar por categoría</option>
+                    <option value="newest">Más recientes primero</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- AI Description Generator -->
+        <div class="ai-generator">
+            <h5><i class="fas fa-robot me-2"></i> Generador de Descripciones con IA</h5>
+            <div class="input-group mb-2">
+                <input type="text" class="form-control" placeholder="Palabras clave para generar descripción...">
+                <button class="btn btn-primary">Generar</button>
+            </div>
+            <small class="text-muted">La IA creará una descripción atractiva para tu producto</small>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="row" id="productGrid">
+            <!-- Product cards will be generated here -->
+        </div>
+    </div>
+
+    <!-- Install Button -->
+    <button class="btn btn-primary install-btn" id="installButton" style="display: none;">
+        <i class="fas fa-download fa-lg"></i>
+    </button>
+
+    <!-- Add Product Modal -->
+    <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addProductModalLabel">Agregar Nuevo Producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="productForm">
+                        <div class="mb-3">
+                            <label for="productName" class="form-label">Nombre del Producto</label>
+                            <input type="text" class="form-control" id="productName" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="productCategory" class="form-label">Categoría</label>
+                            <select class="form-select" id="productCategory" required>
+                                <option value="">Seleccionar categoría...</option>
+                                <option value="electronics">Electrónicos</option>
+                                <option value="clothing">Ropa</option>
+                                <option value="books">Libros</option>
+                                <option value="home">Hogar</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="productDescription" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="productDescription" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Imagen o Video</label>
+                            <div class="upload-area" id="uploadArea">
+                                <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                                <p>Haga clic o arrastre un archivo aquí para subirlo</p>
+                                <input type="file" id="fileInput" hidden accept="image/*,video/*">
+                                <div id="previewContainer" class="mt-3"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="productPrice" class="form-label">Precio</label>
+                            <input type="number" class="form-control" id="productPrice" step="0.01">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveProduct">Guardar Producto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Sample product data
+        const products = [
+            {
+                id: 1,
+                name: "Smartphone XL",
+                category: "electronics",
+                description: "Último modelo con cámara de alta resolución y batería de larga duración.",
+                image: "https://via.placeholder.com/300x200?text=Smartphone",
+                price: 599.99
+            },
+            {
+                id: 2,
+                name: "Abrigo de Invierno",
+                category: "clothing",
+                description: "Abrigo abrigado perfecto para los meses fríos, disponible en varios colores.",
+                image: "https://via.placeholder.com/300x200?text=Abrigo",
+                price: 89.99
+            },
+            {
+                id: 3,
+                name: "Novela Best Seller",
+                category: "books",
+                description: "La novela más vendida del año, con una trama emocionante que te atrapará.",
+                image: "https://via.placeholder.com/300x200?text=Libro",
+                price: 24.99
+            },
+            {
+                id: 4,
+                name: "Silla Ergonómica",
+                category: "home",
+                description: "Silla de oficina ergonómica con soporte lumbar ajustable para mayor comodidad.",
+                image: "https://via.placeholder.com/300x200?text=Silla",
+                price: 199.99
+            }
+        ];
+
+        // Function to render products
+        function renderProducts(productsArray) {
+            const productGrid = document.getElementById('productGrid');
+            productGrid.innerHTML = '';
+            
+            if (productsArray.length === 0) {
+                productGrid.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">No se encontraron productos</h4>
+                        <p>Intenta ajustar los filtros de búsqueda o agrega un nuevo producto.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            productsArray.forEach(product => {
+                const categoryNames = {
+                    'electronics': 'Electrónicos',
+                    'clothing': 'Ropa',
+                    'books': 'Libros',
+                    'home': 'Hogar'
+                };
+                
+                const col = document.createElement('div');
+                col.className = 'col-md-6 col-lg-4 col-xl-3 mb-4';
+                col.innerHTML = `
+                    <div class="card catalog-item h-100">
+                        <span class="category-badge badge bg-primary">${categoryNames[product.category]}</span>
+                        <img src="${product.image}" class="card-img-top product-image" alt="${product.name}">
+                        <div class="card-body">
+                            <h5 class="card-title">${product.name}</h5>
+                            <p class="card-text">${product.description}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="h5 mb-0">$${product.price.toFixed(2)}</span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary edit-btn" data-id="${product.id}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${product.id}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                productGrid.appendChild(col);
+            });
+            
+            // Add event listeners to edit and delete buttons
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const productId = e.target.closest('.edit-btn').dataset.id;
+                    editProduct(productId);
+                });
+            });
+            
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const productId = e.target.closest('.delete-btn').dataset.id;
+                    deleteProduct(productId);
+                });
+            });
+        }
+
+        // Function to handle search
+        function handleSearch() {
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            
+            const filteredProducts = products.filter(product => {
+                const matchesSearch = product.name.toLowerCase().includes(searchText) || 
+                                     product.description.toLowerCase().includes(searchText);
+                const matchesCategory = categoryFilter ? product.category === categoryFilter : true;
+                
+                return matchesSearch && matchesCategory;
+            });
+            
+            renderProducts(filteredProducts);
+        }
+
+        // Function to handle sorting
+        function handleSort() {
+            const sortOption = document.getElementById('sortSelect').value;
+            let sortedProducts = [...products];
+            
+            switch(sortOption) {
+                case 'name':
+                    sortedProducts.sort((a, b) => a.name.localeCompare(b.name));
+                    break;
+                case 'name-desc':
+                    sortedProducts.sort((a, b) => b.name.localeCompare(a.name));
+                    break;
+                case 'category':
+                    sortedProducts.sort((a, b) => a.category.localeCompare(b.category));
+                    break;
+                case 'newest':
+                    // Assuming newer products have higher IDs
+                    sortedProducts.sort((a, b) => b.id - a.id);
+                    break;
+            }
+            
+            renderProducts(sortedProducts);
+        }
+
+        // Function to handle file upload
+        function setupFileUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const previewContainer = document.getElementById('previewContainer');
+            
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('bg-light');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('bg-light');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('bg-light');
+                
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFilePreview(e.dataTransfer.files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length) {
+                    handleFilePreview(fileInput.files[0]);
+                }
+            });
+        }
+        
+        function handleFilePreview(file) {
+            const previewContainer = document.getElementById('previewContainer');
+            previewContainer.innerHTML = '';
+            
+            if (file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.className = 'img-fluid rounded';
+                img.style.maxHeight = '150px';
+                previewContainer.appendChild(img);
+            } else if (file.type.startsWith('video/')) {
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(file);
+                video.controls = true;
+                video.className = 'img-fluid rounded';
+                video.style.maxHeight = '150px';
+                previewContainer.appendChild(video);
+            }
+        }
+
+        // Function to add new product
+        function setupAddProduct() {
+            document.getElementById('saveProduct').addEventListener('click', () => {
+                const name = document.getElementById('productName').value;
+                const category = document.getElementById('productCategory').value;
+                const description = document.getElementById('productDescription').value;
+                const price = parseFloat(document.getElementById('productPrice').value);
+                
+                if (!name || !category) {
+                    alert('Por favor, complete al menos el nombre y la categoría del producto.');
+                    return;
+                }
+                
+                // In a real application, you would upload the file to a server
+                // For this demo, we're using a placeholder
+                const image = "https://via.placeholder.com/300x200?text=Nuevo+Producto";
+                
+                const newProduct = {
+                    id: products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1,
+                    name,
+                    category,
+                    description,
+                    image,
+                    price
+                };
+                
+                products.push(newProduct);
+                renderProducts(products);
+                
+                // Close modal and reset form
+                bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
+                document.getElementById('productForm').reset();
+                document.getElementById('previewContainer').innerHTML = '';
+                
+                // Show success message
+                alert('Producto agregado correctamente!');
+            });
+        }
+
+        // Function to edit product (simplified for demo)
+        function editProduct(id) {
+            alert(`Funcionalidad de edición para el producto con ID ${id}. En una aplicación real, se abriría un formulario de edición.`);
+        }
+
+        // Function to delete product
+        function deleteProduct(id) {
+            if (confirm('¿Está seguro de que desea eliminar este producto?')) {
+                const index = products.findIndex(p => p.id === parseInt(id));
+                if (index !== -1) {
+                    products.splice(index, 1);
+                    renderProducts(products);
+                    alert('Producto eliminado correctamente!');
+                }
+            }
+        }
+
+        // PWA functionality
+        function setupPWA() {
+            let deferredPrompt;
+            const installButton = document.getElementById('installButton');
+            const downloadBtn = document.getElementById('downloadBtn');
+            
+            // Create manifest dynamically
+            const manifest = {
+                "name": "Catálogo Digital Pro",
+                "short_name": "CataDigital",
+                "description": "Catálogo digital con capacidad de edición",
+                "start_url": ".",
+                "display": "standalone",
+                "background_color": "#4e73df",
+                "theme_color": "#4e73df",
+                "icons": [
+                    {
+                        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%234e73df' rx='15'/%3E%3Ctext x='50' y='50' font-size='50' text-anchor='middle' dominant-baseline='middle' fill='%23FFF'%3E%F0%9F%93%81%3C/text%3E%3C/svg%3E",
+                        "sizes": "100x100",
+                        "type": "image/svg+xml"
+                    }
+                ]
+            };
+            
+            const manifestJson = JSON.stringify(manifest);
+            const manifestContent = `data:application/manifest+json;charset=utf-8,${encodeURIComponent(manifestJson)}`;
+            document.getElementById('appManifest').setAttribute('href', manifestContent);
+            
+            // Listen for beforeinstallprompt event
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // Prevent the mini-infobar from appearing on mobile
+                e.preventDefault();
+                // Stash the event so it can be triggered later
+                deferredPrompt = e;
+                // Show the install button
+                installButton.style.display = 'flex';
+                
+                installButton.addEventListener('click', () => {
+                    // Hide the install button
+                    installButton.style.display = 'none';
+                    // Show the install prompt
+                    deferredPrompt.prompt();
+                    // Wait for the user to respond to the prompt
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('User accepted the install prompt');
+                        } else {
+                            console.log('User dismissed the install prompt');
+                        }
+                        deferredPrompt = null;
+                    });
+                });
+                
+                // Also show the download button
+                downloadBtn.addEventListener('click', () => {
+                    installButton.click();
+                });
+            });
+            
+            // Listen for app installed event
+            window.addEventListener('appinstalled', () => {
+                console.log('PWA was installed');
+                installButton.style.display = 'none';
+                deferredPrompt = null;
+            });
+            
+            // Handle offline/online status
+            window.addEventListener('online', () => {
+                document.getElementById('offlineAlert').style.display = 'none';
+            });
+            
+            window.addEventListener('offline', () => {
+                document.getElementById('offlineAlert').style.display = 'block';
+            });
+            
+            // Check initial connection status
+            if (!navigator.onLine) {
+                document.getElementById('offlineAlert').style.display = 'block';
+            }
+            
+            // Share functionality
+            document.getElementById('shareBtn').addEventListener('click', async () => {
+                try {
+                    if (navigator.share) {
+                        await navigator.share({
+                            title: 'Catálogo Digital Pro',
+                            text: 'Mira este increíble catálogo digital que puedes instalar en tu dispositivo',
+                            url: window.location.href
+                        });
+                    } else {
+                        alert('Compartir no es compatible en tu navegador. Copia la URL para compartirla.');
+                    }
+                } catch (error) {
+                    console.log('Error sharing:', error);
+                }
+            });
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProducts(products);
+            setupFileUpload();
+            setupAddProduct();
+            setupPWA();
+            
+            // Add event listeners
+            document.getElementById('searchInput').addEventListener('input', handleSearch);
+            document.getElementById('categoryFilter').addEventListener('change', handleSearch);
+            document.getElementById('sortSelect').addEventListener('change', handleSort);
+        });
+    </script>
+</body>
+</html>
